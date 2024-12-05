@@ -46,7 +46,8 @@ jobs:
       - name: Build with dotnet
         run: cd Test.Browser |
             dotnet workload restore |
-            dotnet build --configuration Release |
+            dotnet restore |
+            dotnet build --no-restore --configuration Release |
             dotnet publish -c Release --self-contained
 
       - name: Upload artifact
