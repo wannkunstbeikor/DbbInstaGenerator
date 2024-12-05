@@ -63,7 +63,7 @@ public partial class MainViewModel : ViewModelBase
         gameDays.Clear();
         HttpClient client = new();
         var response = await client.GetAsync(
-            "https://thingproxy.freeboard.io/fetch/https://www.basketball-bund.net/rest/club/id/886/actualmatches?justHome=false&rangeDays=6");
+            "https://cors-test.jonathan-kopmann.workers.dev/?https://www.basketball-bund.net/rest/club/id/886/actualmatches?justHome=false&rangeDays=6");
 
         if (!response.IsSuccessStatusCode)
         {
