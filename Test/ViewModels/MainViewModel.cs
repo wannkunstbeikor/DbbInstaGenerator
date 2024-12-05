@@ -6,20 +6,24 @@ using System.Net.Http;
 using System.Reflection;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using Test.ApiClasses;
+using Image = SixLabors.ImageSharp.Image;
+using Size = SixLabors.ImageSharp.Size;
 
 namespace Test.ViewModels;
 
 public partial class MainViewModel : ViewModelBase
 {
-    private const string templateName = "Test.template.png";
+    private const string templateName = "Test.Resources.template.png";
     
     [ObservableProperty]
     private string scoreTemplate = string.Empty;
@@ -29,6 +33,9 @@ public partial class MainViewModel : ViewModelBase
 
     [ObservableProperty]
     private string fontFamily = "Roboto";
+
+    [ObservableProperty]
+    private Bitmap? bitmap;
     
     Dictionary<DateTime, List<(string HomeTeam, string GuestTeam, string Score)>> gameDayResults = new();
     Dictionary<DateTime, List<(string HomeTeam, string GuestTeam, string Time)>> gameDays = new();
@@ -42,18 +49,25 @@ public partial class MainViewModel : ViewModelBase
     int padGame = 10;
     private int startY = 200;
 
+    private FontCollection fonts = new();
+
     public MainViewModel()
     {
+        fonts.Add(GetResource("Test.Resources.Roboto-Bold.ttf"));
+        fonts.Add(GetResource("Test.Resources.Roboto-Regular.ttf"));
     }
 
     public async Task LoadAsync()
     {
+        gameDayResults.Clear();
+        gameDays.Clear();
         HttpClient client = new();
         var response = await client.GetAsync(
-            "https://www.basketball-bund.net/rest/club/id/886/actualmatches?justHome=false&rangeDays=6");
+            "https://thingproxy.freeboard.io/fetch/https://www.basketball-bund.net/rest/club/id/886/actualmatches?justHome=false&rangeDays=6");
 
         if (!response.IsSuccessStatusCode)
         {
+            var t = await response.Content.ReadAsStringAsync();
             return;
         }
 
@@ -116,10 +130,10 @@ public partial class MainViewModel : ViewModelBase
     private async Task CreateScore()
     {
         await LoadAsync();
-        Font title = SystemFonts.CreateFont(FontFamily, 62, FontStyle.Bold);
-        Font header = SystemFonts.CreateFont(FontFamily, 42, FontStyle.Bold);
-        Font text = SystemFonts.CreateFont(FontFamily, 32);
-        Font boldText = SystemFonts.CreateFont(FontFamily, 32, FontStyle.Bold);
+        Font title = fonts.Get(FontFamily).CreateFont(62, FontStyle.Bold);
+        Font header = fonts.Get(FontFamily).CreateFont(42, FontStyle.Bold);
+        Font text = fonts.Get(FontFamily).CreateFont(32);
+        Font boldText = fonts.Get(FontFamily).CreateFont(32, FontStyle.Bold);
         
         using var templateImage = await LoadImageAsync(templateName);
         using var outputImage = new Image<Rgba32>(templateImage.Width, templateImage.Height);
@@ -166,19 +180,30 @@ public partial class MainViewModel : ViewModelBase
                 yPos += backgroundSize.Height + padGame;
             }
         }
-
-        await outputImage.SaveAsync("scores.png");
+        
+        using (MemoryStream ms = new())
+        {
+            await outputImage.SaveAsync(ms,PngFormat.Instance);
+            ms.Position = 0;
+            Bitmap = new Bitmap(ms);
+        }
     }
 
-    private static async Task<Image> LoadImageAsync(string name)
+    private static Stream GetResource(string name)
     {
         Assembly assembly = Assembly.GetExecutingAssembly();
-
-        await using var stream = assembly.GetManifestResourceStream(name);
+        var stream = assembly.GetManifestResourceStream(name);
         if (stream is null)
         {
             throw new Exception("Missing embedded resource");
         }
+        
+        return stream;
+    }
+
+    private static async Task<Image> LoadImageAsync(string name)
+    {
+        await using var stream = GetResource(name);
         return await Image.LoadAsync(stream);
     }
 
@@ -186,10 +211,10 @@ public partial class MainViewModel : ViewModelBase
     private async Task CreateGameDay()
     {
         await LoadAsync();
-        Font title = SystemFonts.CreateFont(FontFamily, 62, FontStyle.Bold);
-        Font header = SystemFonts.CreateFont(FontFamily, 42, FontStyle.Bold);
-        Font text = SystemFonts.CreateFont(FontFamily, 32);
-        Font boldText = SystemFonts.CreateFont(FontFamily, 32, FontStyle.Bold);
+        Font title = fonts.Get(FontFamily).CreateFont(62, FontStyle.Bold);
+        Font header = fonts.Get(FontFamily).CreateFont(42, FontStyle.Bold);
+        Font text = fonts.Get(FontFamily).CreateFont(32);
+        Font boldText = fonts.Get(FontFamily).CreateFont(32, FontStyle.Bold);
         
         using var templateImage = await LoadImageAsync(templateName);
         using var outputImage = new Image<Rgba32>(templateImage.Width, templateImage.Height);
@@ -233,6 +258,11 @@ public partial class MainViewModel : ViewModelBase
             }
         }
 
-        await outputImage.SaveAsync("games.png");
+        using (MemoryStream ms = new())
+        {
+            await outputImage.SaveAsync(ms,PngFormat.Instance);
+            ms.Position = 0;
+            Bitmap = new Bitmap(ms);
+        }
     }
 }
