@@ -16,9 +16,13 @@ public static class RoundedRectangleExtension
             string text,
             Font font,
             Brush brush,
-            PointF location)
+            PointF location, bool underline = false)
         {
             var size = TextMeasurer.MeasureAdvance(text, new TextOptions(font));
+            if (underline)
+            {
+                source.DrawLine(brush, 2.5f, new PointF(location.X - size.Width / 2, location.Y + size.Height), new PointF(location.X + size.Width / 2, location.Y + size.Height));
+            }
             return source.DrawText(text, font, brush, new PointF(location.X - size.Width / 2, location.Y));
         }
             

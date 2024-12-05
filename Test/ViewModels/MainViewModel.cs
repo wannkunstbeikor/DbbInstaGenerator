@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Net.Http;
+using System.Reflection;
 using System.Text.Json;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -18,6 +19,8 @@ namespace Test.ViewModels;
 
 public partial class MainViewModel : ViewModelBase
 {
+    private const string templateName = "Test.template.png";
+    
     [ObservableProperty]
     private string scoreTemplate = string.Empty;
     
@@ -113,20 +116,18 @@ public partial class MainViewModel : ViewModelBase
     private async Task CreateScore()
     {
         await LoadAsync();
+        Font title = SystemFonts.CreateFont(FontFamily, 62, FontStyle.Bold);
         Font header = SystemFonts.CreateFont(FontFamily, 42, FontStyle.Bold);
         Font text = SystemFonts.CreateFont(FontFamily, 32);
         Font boldText = SystemFonts.CreateFont(FontFamily, 32, FontStyle.Bold);
-
-        if (!File.Exists(ScoreTemplate))
-        {
-            return;
-        }
         
-        using var templateImage = await Image.LoadAsync(ScoreTemplate);
+        using var templateImage = await LoadImageAsync(templateName);
         using var outputImage = new Image<Rgba32>(templateImage.Width, templateImage.Height);
         outputImage.Mutate(x => x.DrawImage(templateImage, 1));
 
         Size backgroundSize = new((int)(templateImage.Width / 2 * 0.7), (int)(text.Size * 1.5));
+
+        outputImage.Mutate(x => x.DrawCenteredText("Ergebnisse vom Wochenende", title, brushBlack, new PointF(templateImage.Width / 2, 75), true));
 
         int yPos = startY;
         foreach (var gameDay in gameDayResults)
@@ -169,23 +170,33 @@ public partial class MainViewModel : ViewModelBase
         await outputImage.SaveAsync("scores.png");
     }
 
+    private static async Task<Image> LoadImageAsync(string name)
+    {
+        Assembly assembly = Assembly.GetExecutingAssembly();
+
+        await using var stream = assembly.GetManifestResourceStream(name);
+        if (stream is null)
+        {
+            throw new Exception("Missing embedded resource");
+        }
+        return await Image.LoadAsync(stream);
+    }
+
     [RelayCommand]
     private async Task CreateGameDay()
     {
         await LoadAsync();
+        Font title = SystemFonts.CreateFont(FontFamily, 62, FontStyle.Bold);
         Font header = SystemFonts.CreateFont(FontFamily, 42, FontStyle.Bold);
         Font text = SystemFonts.CreateFont(FontFamily, 32);
         Font boldText = SystemFonts.CreateFont(FontFamily, 32, FontStyle.Bold);
-
-        if (!File.Exists(GameDayTemplate))
-        {
-            return;
-        }
         
-        using var templateImage = await Image.LoadAsync(GameDayTemplate);
+        using var templateImage = await LoadImageAsync(templateName);
         using var outputImage = new Image<Rgba32>(templateImage.Width, templateImage.Height);
         outputImage.Mutate(x => x.DrawImage(templateImage, 1));
-
+        
+        outputImage.Mutate(x => x.DrawCenteredText("Ergebnisse vom Wochenende", title, brushBlack, new PointF(templateImage.Width / 2, 75), true));
+        
         Size backgroundSize = new((int)(templateImage.Width / 2 * 0.7), (int)(text.Size * 1.5));
 
         int yPos = startY;

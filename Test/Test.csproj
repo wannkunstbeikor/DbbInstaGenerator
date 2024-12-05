@@ -8,6 +8,7 @@
   
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
+    <EmbeddedResource Include="template.png" />
   </ItemGroup>
 
   <ItemGroup>

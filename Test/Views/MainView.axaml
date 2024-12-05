@@ -18,14 +18,14 @@
                 <Label Content="FontFamily" Margin="10" VerticalAlignment="Center"/>
                 <TextBox Text="{Binding FontFamily}" Margin="10" />
             </DockPanel>
-            <DockPanel >
-                <Label Content="ScoreTemplate" Margin="10" VerticalAlignment="Center"/>
-                <TextBox Text="{Binding ScoreTemplate}" Margin="10" />
-            </DockPanel>
-            <DockPanel >
-                <Label Content="GameDayTemplate" Margin="10" VerticalAlignment="Center"/>
-                <TextBox Text="{Binding GameDayTemplate}" Margin="10" />
-            </DockPanel>
+            <!-- <DockPanel > -->
+            <!--     <Label Content="ScoreTemplate" Margin="10" VerticalAlignment="Center"/> -->
+            <!--     <TextBox Text="{Binding ScoreTemplate}" Margin="10" /> -->
+            <!-- </DockPanel> -->
+            <!-- <DockPanel > -->
+            <!--     <Label Content="GameDayTemplate" Margin="10" VerticalAlignment="Center"/> -->
+            <!--     <TextBox Text="{Binding GameDayTemplate}" Margin="10" /> -->
+            <!-- </DockPanel> -->
         </StackPanel>
         
         <StackPanel Grid.Row="1">
