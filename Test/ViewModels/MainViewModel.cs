@@ -220,7 +220,7 @@ public partial class MainViewModel : ViewModelBase
         using var outputImage = new Image<Rgba32>(templateImage.Width, templateImage.Height);
         outputImage.Mutate(x => x.DrawImage(templateImage, 1));
         
-        outputImage.Mutate(x => x.DrawCenteredText("Ergebnisse vom Wochenende", title, brushBlack, new PointF(templateImage.Width / 2, 75), true));
+        outputImage.Mutate(x => x.DrawCenteredText("Spiele am Wochenende", title, brushBlack, new PointF(templateImage.Width / 2, 75), true));
         
         Size backgroundSize = new((int)(templateImage.Width / 2 * 0.7), (int)(text.Size * 1.5));
 
