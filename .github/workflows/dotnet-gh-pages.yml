@@ -34,7 +34,8 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8
-      - run: dotnet workload install wasm-tools
+      - run: dotnet workload install wasm-tools |
+            dotnet workload restore
 
       - name: Set up dependency caching for faster builds
         uses: actions/cache@v3
