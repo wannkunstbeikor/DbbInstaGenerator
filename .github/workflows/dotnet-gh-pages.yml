@@ -45,8 +45,6 @@ jobs:
       - run: dotnet workload install wasm-tools
       - name: Build with dotnet
         run: cd Test.Browser |
-            dotnet workload restore |
-            dotnet restore |
             dotnet build --no-restore --configuration Release |
             dotnet publish -c Release --self-contained
 
