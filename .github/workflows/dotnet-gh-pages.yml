@@ -34,8 +34,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8
-      - run: dotnet workload install wasm-tools |
-            dotnet workload restore
 
       - name: Set up dependency caching for faster builds
         uses: actions/cache@v3
@@ -44,8 +42,10 @@ jobs:
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
+      - run: dotnet workload install wasm-tools
       - name: Build with dotnet
         run: cd Test.Browser |
+            dotnet workload restore |
             dotnet build --configuration Release |
             dotnet publish -c Release --self-contained
 
