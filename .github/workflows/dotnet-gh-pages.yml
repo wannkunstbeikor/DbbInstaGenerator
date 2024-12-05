@@ -42,9 +42,9 @@ jobs:
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
-      - run: dotnet workload install wasm-tools
       - name: Build with dotnet
         run: cd Test.Browser |
+            dotnet workload install wasm-tools |
             dotnet build --no-restore --configuration Release |
             dotnet publish -c Release --self-contained
 
