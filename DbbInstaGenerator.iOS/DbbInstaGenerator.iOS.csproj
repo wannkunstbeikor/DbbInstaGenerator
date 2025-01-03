@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-ios</TargetFramework>
+    <SupportedOSPlatformVersion>13.0</SupportedOSPlatformVersion>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.iOS" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DbbInstaGenerator\DbbInstaGenerator.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Private.CoreLib">
+      <HintPath>..\..\..\..\..\usr\share\dotnet\shared\Microsoft.NETCore.App\8.0.11\System.Private.CoreLib.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>
