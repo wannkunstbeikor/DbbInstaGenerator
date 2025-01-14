@@ -13,7 +13,9 @@ public class BrowserShareService : IShareService
         var f = await FileDialogService.ShowSaveFileDialogAsync(new FilePickerSaveOptions
         {
             DefaultExtension = ".jpeg",
-            Title = "Save Image"
+            Title = "Save Image",
+            SuggestedFileName = "image.jpeg",
+            FileTypeChoices = [new FilePickerFileType(".jpeg")]
         })!;
         if (f is null)
         {
