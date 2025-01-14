@@ -13,16 +13,16 @@
   </Design.DataContext>
     
     <Grid RowDefinitions="Auto,*, Auto">
-        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center">
+        <StackPanel Margin="20" Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center">
             <Button Margin="10" Content="Spiele" Command="{Binding CreateGameDayCommand}"/>
             <Button Margin="10" Content="Ergebnisse" Command="{Binding CreateScoreCommand}"/>
         </StackPanel>
         
         <Image Grid.Row="1" Source="{Binding Bitmap}"/>
         
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
-            <Button Margin="10" Content="Share"  Command="{Binding ShareCommand}" />
-            <Button Margin="10" Content="ShareB" Command="{Binding ShareBCommand}" />
+        <StackPanel Margin="20" Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
+            <Button Margin="10" Content="{OnPlatform Default=Save, Android=Share as Background, iOS=Share}"  Command="{Binding ShareCommand}" />
+            <Button Margin="10" IsVisible="{OnPlatform Default=False, Android=True, iOS=True}" Content="Share as Sticker" Command="{Binding ShareBCommand}" />
         </StackPanel>
         
     </Grid>

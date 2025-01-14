@@ -1,13 +1,27 @@
 using System.IO;
+using Avalonia.Controls;
+using Avalonia.Platform.Storage;
 using DbbInstaGenerator.Interfaces;
+using DbbInstaGenerator.Services;
 
 namespace DbbInstaGenerator.Browser;
 
 public class BrowserShareService : IShareService
 {
-    public void Share(MemoryStream inStream)
+    public async void Share(MemoryStream inStream)
     {
-        throw new System.NotImplementedException();
+        var f = await FileDialogService.ShowSaveFileDialogAsync(new FilePickerSaveOptions
+        {
+            DefaultExtension = ".jpeg",
+            Title = "Save Image"
+        })!;
+        if (f is null)
+        {
+            return;
+        }
+
+        await using var stream = await f.OpenWriteAsync();
+        await inStream.CopyToAsync(stream);
     }
 
     public void ShareB(MemoryStream inStream)

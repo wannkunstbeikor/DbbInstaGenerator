@@ -4,6 +4,7 @@ using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
+using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using Path = SixLabors.ImageSharp.Drawing.Path;
 
@@ -24,6 +25,30 @@ public static class RoundedRectangleExtension
                 source.DrawLine(brush, 2.5f, new PointF(location.X - size.Width / 2, location.Y + size.Height), new PointF(location.X + size.Width / 2, location.Y + size.Height));
             }
             return source.DrawText(text, font, brush, new PointF(location.X - size.Width / 2, location.Y));
+        }
+
+        public static IImageProcessingContext DrawRoundedRectangle(this IImageProcessingContext source,
+            RectangleF rectangle, Rgba32 color, float cornerRadius = 10.0f)
+        {
+            return source.Fill(color, rectangle.ToRoundedRectangle(cornerRadius));
+        }
+
+        public static IImageProcessingContext DrawRoundedRectangle(this IImageProcessingContext source,
+            FontRectangle rectangle, Rgba32 color, float cornerRadius = 10.0f)
+        {
+            return source.Fill(color, new RectangleF(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height).ToRoundedRectangle(cornerRadius));
+        }
+
+        public static IImageProcessingContext DrawRoundedRectangleWithCenteredText(this IImageProcessingContext source,
+            FontRectangle rectangle, Rgba32 color, string text, Font font, Brush brush, float cornerRadius = 10.0f, bool underline = false)
+        {
+            return source.Fill(color, new RectangleF(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height).ToRoundedRectangle(cornerRadius)).DrawCenteredText(text, font, brush, new PointF(rectangle.X + rectangle.Width / 2, rectangle.Y +
+                (rectangle.Height - font.Size) / 2));
+        }
+
+        public static FontRectangle Pad(this FontRectangle rect, float padding)
+        {
+            return new FontRectangle(rect.X, rect.Y, rect.Width + padding * 2, rect.Height + padding * 2);
         }
             
         public static IPath ToRoundedRectangle(this RectangleF rectangle, float cornerRadius)
