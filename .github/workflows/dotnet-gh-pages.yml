@@ -37,7 +37,7 @@ jobs:
       
       - run: dotnet workload install wasm-tools
       - name: Build with dotnet
-        run: dotnet publish Test.Browser -c Release --self-contained -o publish
+        run: dotnet publish DbbInstaGenerator.Browser -c Release --self-contained -o publish
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
