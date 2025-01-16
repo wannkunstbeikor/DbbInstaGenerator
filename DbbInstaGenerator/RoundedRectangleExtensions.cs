@@ -1,9 +1,15 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using Path = SixLabors.ImageSharp.Drawing.Path;
@@ -12,6 +18,11 @@ namespace DbbInstaGenerator;
 
 public static class RoundedRectangleExtension
     {
+        public static Task SaveAsync(this Image image, Stream stream, CancellationToken cancellationToken = default)
+        {
+            return image.SaveAsync(stream, OperatingSystem.IsIOS() ? JpegFormat.Instance : PngFormat.Instance, cancellationToken);
+        }
+        
         public static IImageProcessingContext DrawCenteredText(
             this IImageProcessingContext source,
             string text,

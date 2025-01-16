@@ -27,6 +27,7 @@ namespace DbbInstaGenerator.ViewModels;
 public partial class MainViewModel : ViewModelBase
 {
     private const string templateName = "DbbInstaGenerator.Resources.template.png";
+    private const string iconName = "DbbInstaGenerator.Resources.Icon.png";
     
     [ObservableProperty]
     private string scoreTemplate = string.Empty;
@@ -173,8 +174,8 @@ public partial class MainViewModel : ViewModelBase
         
         using var templateImage = await LoadImageAsync(templateName);
         using var outputImage = new Image<Rgba32>(templateImage.Width, templateImage.Height);
-        outputImage.Mutate(x => x.Fill(Color.White));
-        //outputImage.Mutate(x => x.DrawImage(templateImage, 1));
+        //outputImage.Mutate(x => x.Fill(Color.White));
+        outputImage.Mutate(x => x.DrawImage(templateImage, 1));
 
         outputImage.Mutate(x => x.DrawCenteredText("Ergebnisse vom Wochenende", title, brushBlack, new PointF(outputImage.Width / 2, 75), true));
         
@@ -232,7 +233,7 @@ public partial class MainViewModel : ViewModelBase
         }
 
         MemoryStream ms = new();
-        await outputImage.SaveAsync(ms, JpegFormat.Instance);
+        await outputImage.SaveAsync(ms);
         ms.Position = 0;
         Stream = ms;
     }
@@ -262,8 +263,8 @@ public partial class MainViewModel : ViewModelBase
         
         using var templateImage = await LoadImageAsync(templateName);
         using var outputImage = new Image<Rgba32>(templateImage.Width, templateImage.Height);
-        outputImage.Mutate(x => x.Fill(Color.White));
-        //outputImage.Mutate(x => x.DrawImage(templateImage, 1));
+        //outputImage.Mutate(x => x.Fill(new Color(new Abgr32(255, 255, 255, 0))));
+        outputImage.Mutate(x => x.DrawImage(templateImage, 1));
         
         outputImage.Mutate(x => x.DrawCenteredText("Spiele am Wochenende", title, brushBlack, new PointF(outputImage.Width / 2, 75), true));
 
@@ -321,7 +322,7 @@ public partial class MainViewModel : ViewModelBase
         }
 
         MemoryStream ms = new();
-        await outputImage.SaveAsync(ms,PngFormat.Instance);
+        await outputImage.SaveAsync(ms);
         ms.Position = 0;
         Stream = ms;
     }
