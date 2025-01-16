@@ -70,7 +70,7 @@ public partial class MainViewModel : ViewModelBase
     private readonly int padAfterHeader = 40;
     private readonly int padAfterGame = 10;
     private readonly float padRect = 10;
-    private readonly float padBetween = 20;
+    private readonly float padBetweenRects = 20;
 
     private readonly FontCollection fonts = new();
     private readonly IShareService shareService;
@@ -90,13 +90,13 @@ public partial class MainViewModel : ViewModelBase
         fonts.Add(GetResource("DbbInstaGenerator.Resources.Roboto-Regular.ttf"));
         
         // create fonts
-        titleFont = fonts.Get(FontFamily).CreateFont(82, FontStyle.Bold);
-        headerFont = fonts.Get(FontFamily).CreateFont(42, FontStyle.Bold);
+        titleFont = fonts.Get(FontFamily).CreateFont(122, FontStyle.Bold);
+        headerFont = fonts.Get(FontFamily).CreateFont(52, FontStyle.Bold);
         standardFont = fonts.Get(FontFamily).CreateFont(32);
         boldFont = fonts.Get(FontFamily).CreateFont(32, FontStyle.Bold);
     }
 
-    public async Task LoadAsync()
+    private async Task LoadAsync()
     {
         // clear previous data
         gameDayResults.Clear();
@@ -152,7 +152,7 @@ public partial class MainViewModel : ViewModelBase
             else
             {
                 gameDays.TryAdd(gameTime, new());
-                gameDays[gameTime].Add((ekTeam, opTeam, homeName.Item2, match.KickoffTime));
+                gameDays[gameTime].Add((ekTeam, opTeam, homeName.Item2, match.KickoffTime + " Uhr"));
             }
         }
     }
@@ -207,7 +207,7 @@ public partial class MainViewModel : ViewModelBase
         
         // use the rects to calculate the offset of the x and y axis, so the stuff is centered
         float offsetX = (outputImage.Width - (ekRect.Width + atRect.Width + opRect.Width + timeRect.Width +
-                                              3 * padBetween)) / 2;
+                                              3 * padBetweenRects)) / 2;
         float offsetY = (outputImage.Height - (data.Values.Count * (headerFont.Size + padAfterHeader) +
                                                (data.Values.Count - 1) * padAfterGame + data.Values.Sum(va =>
                                                    va.Count * ekRect.Height + (va.Count - 1) * padAfterGame))) / 2;
@@ -235,7 +235,7 @@ public partial class MainViewModel : ViewModelBase
                         game.EkTeam, boldFont, brushWhite);
                     xPos += ekRect.Width;
 
-                    xPos += padBetween;
+                    xPos += padBetweenRects;
 
                     // draw vs or @ depending on home/away game
                     x.DrawRoundedRectangleWithCenteredText(
@@ -243,7 +243,7 @@ public partial class MainViewModel : ViewModelBase
                         Rgba32.ParseHex("#cbcbcb"), game.IsHomeGame ? "vs" : "@", boldFont, brushBlack);
                     xPos += atRect.Width;
 
-                    xPos += padBetween;
+                    xPos += padBetweenRects;
 
                     // draw opponent team name
                     x.DrawRoundedRectangleWithCenteredText(
@@ -251,7 +251,7 @@ public partial class MainViewModel : ViewModelBase
                         Rgba32.ParseHex("#f05a5a"), game.OpTeam, standardFont, brushWhite);
                     xPos += opRect.Width;
 
-                    xPos += padBetween;
+                    xPos += padBetweenRects;
 
                     // draw score or time of the game
                     x.DrawRoundedRectangleWithCenteredText(
@@ -295,7 +295,7 @@ public partial class MainViewModel : ViewModelBase
     {
         await LoadAsync();
 
-        await Render("Ergebnisse vom Wochenende", gameDayResults);
+        await Render("Ergebnisse", gameDayResults);
     }
 
     [RelayCommand]
@@ -303,7 +303,7 @@ public partial class MainViewModel : ViewModelBase
     {
         await LoadAsync();
 
-        await Render("Spiele am Wochenende", gameDays);
+        await Render("Spieltag", gameDays);
     }
 
     [RelayCommand]
