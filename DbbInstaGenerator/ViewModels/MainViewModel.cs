@@ -295,7 +295,7 @@ public partial class MainViewModel : ViewModelBase
     {
         await LoadAsync();
 
-        await Render("Ergebnisse", gameDayResults);
+        await Render("ERGEBNISSE", gameDayResults);
     }
 
     [RelayCommand]
@@ -303,7 +303,7 @@ public partial class MainViewModel : ViewModelBase
     {
         await LoadAsync();
 
-        await Render("Spieltag", gameDays);
+        await Render("SPIELTAG", gameDays);
     }
 
     [RelayCommand]
