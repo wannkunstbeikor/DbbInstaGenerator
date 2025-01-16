@@ -26,8 +26,7 @@ namespace DbbInstaGenerator.ViewModels;
 
 public partial class MainViewModel : ViewModelBase
 {
-    private const string templateName = "DbbInstaGenerator.Resources.template.png";
-    private const string iconName = "DbbInstaGenerator.Resources.Icon.png";
+    private const string backgroundResourceName = "DbbInstaGenerator.Resources.template.png";
     
     [ObservableProperty]
     private string scoreTemplate = string.Empty;
@@ -60,46 +59,68 @@ public partial class MainViewModel : ViewModelBase
     }
 
     private MemoryStream? m_stream;
-    
-    Dictionary<DateTime, List<(string EkTeam, string OpTeam, bool IsHomeGame, string Score)>> gameDayResults = new();
-    Dictionary<DateTime, List<(string EkTeam, string OpTeam, bool IsHomeGame, string Time)>> gameDays = new();
-    
-    Brush brushWhite = Brushes.Solid(Color.WhiteSmoke);
-    Brush brushBlack = Brushes.Solid(Color.Black);
 
-    int xGame = 40;
-    int padGameDay = 40;
-    int padGame = 10;
-    private int startY = 200;
-    private float padRect = 10;
-    private float padBetween = 20;
+    private Dictionary<DateTime, List<(string EkTeam, string OpTeam, bool IsHomeGame, string Score)>> gameDayResults =
+        new();
+    private Dictionary<DateTime, List<(string EkTeam, string OpTeam, bool IsHomeGame, string Time)>> gameDays = new();
 
-    private FontCollection fonts = new();
-    private IShareService m_shareService;
-    
-    Font title;
-    Font header;
-    Font text;
-    Font boldText;
+    private Brush brushWhite = Brushes.Solid(Color.WhiteSmoke);
+    private Brush brushBlack = Brushes.Solid(Color.Black);
+
+    private readonly int padAfterHeader = 40;
+    private readonly int padAfterGame = 10;
+    private readonly float padRect = 10;
+    private readonly float padBetween = 20;
+
+    private readonly FontCollection fonts = new();
+    private readonly IShareService shareService;
+
+    private Font titleFont;
+    private Font headerFont;
+    private Font standardFont;
+    private Font boldFont;
+
+    private static readonly string request =
+        "https://www.basketball-bund.net/rest/club/id/886/actualmatches?justHome=false&rangeDays=6";
 
     public MainViewModel(IShareService inShareService)
     {
-        m_shareService = inShareService;
+        shareService = inShareService;
         fonts.Add(GetResource("DbbInstaGenerator.Resources.Roboto-Bold.ttf"));
         fonts.Add(GetResource("DbbInstaGenerator.Resources.Roboto-Regular.ttf"));
+        
+        // create fonts
+        titleFont = fonts.Get(FontFamily).CreateFont(82, FontStyle.Bold);
+        headerFont = fonts.Get(FontFamily).CreateFont(42, FontStyle.Bold);
+        standardFont = fonts.Get(FontFamily).CreateFont(32);
+        boldFont = fonts.Get(FontFamily).CreateFont(32, FontStyle.Bold);
     }
 
     public async Task LoadAsync()
     {
+        // clear previous data
         gameDayResults.Clear();
         gameDays.Clear();
+        
         HttpClient client = new();
-        var response = await client.GetAsync(
-            "https://cors-test.jonathan-kopmann.workers.dev/?https://www.basketball-bund.net/rest/club/id/886/actualmatches?justHome=false&rangeDays=6");
+
+        string uri;
+        if (OperatingSystem.IsBrowser())
+        {
+            // we need to bypass cors
+            uri = $"https://cors-test.jonathan-kopmann.workers.dev/?{request}";
+        }
+        else
+        {
+            uri = request;
+        }
+
+        var response = await client.GetAsync(uri);
 
         if (!response.IsSuccessStatusCode)
         {
             var t = await response.Content.ReadAsStringAsync();
+            // TODO: show some error
             return;
         }
 
@@ -107,9 +128,11 @@ public partial class MainViewModel : ViewModelBase
         ApiResponse<ClubData>? c = JsonSerializer.Deserialize<ApiResponse<ClubData>>(responseBody);
         if (c is null)
         {
+            // TODO: show some error
             return;
         }
 
+        // go through all games returned by the api and add them to our dictionaries
         foreach (var match in c.Data.Matches)
         {
             DateTime gameTime = DateTime.ParseExact(match.KickoffDate, c.DateFormat, null);
@@ -132,14 +155,8 @@ public partial class MainViewModel : ViewModelBase
                 gameDays[gameTime].Add((ekTeam, opTeam, homeName.Item2, match.KickoffTime));
             }
         }
-        
-        
-        title = fonts.Get(FontFamily).CreateFont(62, FontStyle.Bold);
-        header = fonts.Get(FontFamily).CreateFont(42, FontStyle.Bold);
-        text = fonts.Get(FontFamily).CreateFont(32);
-        boldText = fonts.Get(FontFamily).CreateFont(32, FontStyle.Bold);
     }
-    
+
     private static (string, bool) GetTeamName(Team team, LigaData ligaData, ClubData c)
     {
         if (team.ClubId == c.Club.VereinId)
@@ -167,71 +184,88 @@ public partial class MainViewModel : ViewModelBase
         return (team.Teamname, false);
     }
 
-    [RelayCommand]
-    private async Task CreateScore()
+    private async Task Render(string title, Dictionary<DateTime, List<(string EkTeam, string OpTeam, bool IsHome, string ScoreOrTime)>> data)
     {
-        await LoadAsync();
+        // load our background
+        using var backgroundImage = await LoadImageAsync(backgroundResourceName);
+        using var outputImage = new Image<Rgba32>(backgroundImage.Width, backgroundImage.Height);
         
-        using var templateImage = await LoadImageAsync(templateName);
-        using var outputImage = new Image<Rgba32>(templateImage.Width, templateImage.Height);
-        //outputImage.Mutate(x => x.Fill(Color.White));
-        outputImage.Mutate(x => x.DrawImage(templateImage, 1));
+        // draw the background
+        outputImage.Mutate(x => x.DrawImage(backgroundImage, 1));
 
-        outputImage.Mutate(x => x.DrawCenteredText("Ergebnisse vom Wochenende", title, brushBlack, new PointF(outputImage.Width / 2, 75), true));
-        
-        float yPos = startY;
-
-        FontRectangle ekRect = gameDayResults.Values.SelectMany(gameDay => gameDay).Aggregate(FontRectangle.Empty,
+        // create rectangles that fit the largest text
+        FontRectangle ekRect = data.Values.SelectMany(gameDay => gameDay).Aggregate(FontRectangle.Empty,
             (current, game) => FontRectangle.Union(current,
-                TextMeasurer.MeasureAdvance(game.EkTeam, new TextOptions(boldText)))).Pad(padRect);
-        FontRectangle opRect = gameDayResults.Values.SelectMany(gameDay => gameDay).Aggregate(FontRectangle.Empty,
+                TextMeasurer.MeasureAdvance(game.EkTeam, new TextOptions(boldFont)))).Pad(padRect);
+        FontRectangle opRect = data.Values.SelectMany(gameDay => gameDay).Aggregate(FontRectangle.Empty,
             (current, game) => FontRectangle.Union(current,
-                TextMeasurer.MeasureAdvance(game.OpTeam, new TextOptions(text)))).Pad(padRect);
-
-        FontRectangle atRect = TextMeasurer.MeasureAdvance("vs", new TextOptions(boldText)).Pad(padRect);
-        
-        FontRectangle timeRect = gameDayResults.Values.SelectMany(gameDay => gameDay).Aggregate(FontRectangle.Empty,
+                TextMeasurer.MeasureAdvance(game.OpTeam, new TextOptions(standardFont)))).Pad(padRect);
+        FontRectangle atRect = TextMeasurer.MeasureAdvance("vs", new TextOptions(boldFont)).Pad(padRect);
+        FontRectangle timeRect = data.Values.SelectMany(gameDay => gameDay).Aggregate(FontRectangle.Empty,
             (current, game) => FontRectangle.Union(current,
-                TextMeasurer.MeasureAdvance(game.Score, new TextOptions(boldText)))).Pad(padRect);
+                TextMeasurer.MeasureAdvance(game.ScoreOrTime, new TextOptions(boldFont)))).Pad(padRect);
         
+        // use the rects to calculate the offset of the x and y axis, so the stuff is centered
         float offsetX = (outputImage.Width - (ekRect.Width + atRect.Width + opRect.Width + timeRect.Width +
                                               3 * padBetween)) / 2;
+        float offsetY = (outputImage.Height - (data.Values.Count * (headerFont.Size + padAfterHeader) +
+                                               (data.Values.Count - 1) * padAfterGame + data.Values.Sum(va =>
+                                                   va.Count * ekRect.Height + (va.Count - 1) * padAfterGame))) / 2;
 
-        foreach (var gameDay in gameDayResults)
+        // draw title at the top
+        outputImage.Mutate(x => x.DrawCenteredText(title, titleFont, brushWhite, new PointF(outputImage.Width / 2, offsetY / 2), true));
+
+        float yPos = offsetY;
+        foreach (var day in data)
         {
-            yPos += 50;
-            string s = gameDay.Key.ToString("dddd dd.MM.yyyy", new CultureInfo("de-DE")).ToUpper();
-            var size = TextMeasurer.MeasureAdvance(s, new TextOptions(header));
+            // draw day
+            string s = day.Key.ToString("dddd dd.MM.yyyy", new CultureInfo("de-DE")).ToUpper();
             outputImage.Mutate(x =>
-                x.DrawText(s, header, brushBlack, new PointF(outputImage.Width / 2 - size.Width / 2, yPos)));
+                x.DrawCenteredText(s, headerFont, brushWhite, new PointF(outputImage.Width / 2, yPos)));
+            yPos += headerFont.Size + padAfterHeader;
 
-            yPos += (int)header.Size + padGameDay;
-
-            foreach ((string EkTeam, string OpTeam, bool IsHomeGame, string Score) g in gameDay.Value)
+            foreach ((string EkTeam, string OpTeam, bool IsHomeGame, string ScoreOrTime) game in day.Value)
             {
+                float xPos = offsetX;
                 outputImage.Mutate(x =>
                 {
-                    // draw background
+                    // draw ek team name
                     x.DrawRoundedRectangleWithCenteredText(
-                        ekRect.Offset(offsetX + timeRect.Width + padBetween, yPos - (ekRect.Height - boldText.Size) / 2), Rgba32.ParseHex("#f05a5a"),
-                        g.EkTeam, boldText, brushWhite);
+                        ekRect.Offset(xPos, yPos - (ekRect.Height - boldFont.Size) / 2), Rgba32.ParseHex("#f05a5a"),
+                        game.EkTeam, boldFont, brushWhite);
+                    xPos += ekRect.Width;
 
-                    x.DrawRoundedRectangleWithCenteredText(
-                        atRect.Offset(offsetX + timeRect.Width + ekRect.Width + 2 * padBetween, yPos - (atRect.Height - boldText.Size) / 2),
-                        Rgba32.ParseHex("#cbcbcb"), g.IsHomeGame ? "vs" : "@", boldText, brushBlack);
+                    xPos += padBetween;
 
+                    // draw vs or @ depending on home/away game
                     x.DrawRoundedRectangleWithCenteredText(
-                        opRect.Offset(offsetX + timeRect.Width + ekRect.Width + 3 * padBetween + atRect.Width, yPos - (opRect.Height - text.Size) / 2),
-                        Rgba32.ParseHex("#f05a5a"), g.OpTeam, text, brushWhite);
+                        atRect.Offset(xPos, yPos - (atRect.Height - boldFont.Size) / 2),
+                        Rgba32.ParseHex("#cbcbcb"), game.IsHomeGame ? "vs" : "@", boldFont, brushBlack);
+                    xPos += atRect.Width;
 
+                    xPos += padBetween;
+
+                    // draw opponent team name
                     x.DrawRoundedRectangleWithCenteredText(
-                        timeRect.Offset(offsetX, yPos - (timeRect.Height - boldText.Size) / 2),
-                        Rgba32.ParseHex("#cbcbcb"), g.Score, boldText, brushBlack);
+                        opRect.Offset(xPos, yPos - (opRect.Height - standardFont.Size) / 2),
+                        Rgba32.ParseHex("#f05a5a"), game.OpTeam, standardFont, brushWhite);
+                    xPos += opRect.Width;
+
+                    xPos += padBetween;
+
+                    // draw score or time of the game
+                    x.DrawRoundedRectangleWithCenteredText(
+                        timeRect.Offset(xPos, yPos - (timeRect.Height - boldFont.Size) / 2),
+                        Rgba32.ParseHex("#cbcbcb"), game.ScoreOrTime, boldFont, brushBlack);
+                    xPos += timeRect.Width;
                 });
-                yPos += ekRect.Height + padGame;
+                yPos += ekRect.Height + padAfterGame;
             }
+
+            yPos += padAfterHeader - padAfterGame;
         }
 
+        // save the image to the stream so we can process it further if asked by the user
         MemoryStream ms = new();
         await outputImage.SaveAsync(ms);
         ms.Position = 0;
@@ -257,74 +291,19 @@ public partial class MainViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private async Task CreateScore()
+    {
+        await LoadAsync();
+
+        await Render("Ergebnisse vom Wochenende", gameDayResults);
+    }
+
+    [RelayCommand]
     private async Task CreateGameDay()
     {
         await LoadAsync();
-        
-        using var templateImage = await LoadImageAsync(templateName);
-        using var outputImage = new Image<Rgba32>(templateImage.Width, templateImage.Height);
-        //outputImage.Mutate(x => x.Fill(new Color(new Abgr32(255, 255, 255, 0))));
-        outputImage.Mutate(x => x.DrawImage(templateImage, 1));
-        
-        outputImage.Mutate(x => x.DrawCenteredText("Spiele am Wochenende", title, brushBlack, new PointF(outputImage.Width / 2, 75), true));
 
-        float yPos = startY;
-
-        FontRectangle ekRect = gameDays.Values.SelectMany(gameDay => gameDay).Aggregate(FontRectangle.Empty,
-            (current, game) => FontRectangle.Union(current,
-                TextMeasurer.MeasureAdvance(game.EkTeam, new TextOptions(boldText)))).Pad(padRect);
-        FontRectangle opRect = gameDays.Values.SelectMany(gameDay => gameDay).Aggregate(FontRectangle.Empty,
-            (current, game) => FontRectangle.Union(current,
-                TextMeasurer.MeasureAdvance(game.OpTeam, new TextOptions(text)))).Pad(padRect);
-
-        FontRectangle atRect = TextMeasurer.MeasureAdvance("vs", new TextOptions(boldText)).Pad(padRect);
-        
-        FontRectangle timeRect = gameDays.Values.SelectMany(gameDay => gameDay).Aggregate(FontRectangle.Empty,
-            (current, game) => FontRectangle.Union(current,
-                TextMeasurer.MeasureAdvance(game.Time, new TextOptions(boldText)))).Pad(padRect);
-        
-        float offsetX = (outputImage.Width - (ekRect.Width + atRect.Width + opRect.Width + timeRect.Width +
-                                              3 * padBetween)) / 2;
-
-        foreach (var gameDay in gameDays)
-        {
-            yPos += 50;
-            string s = gameDay.Key.ToString("dddd dd.MM.yyyy", new CultureInfo("de-DE")).ToUpper();
-            var size = TextMeasurer.MeasureAdvance(s, new TextOptions(header));
-            outputImage.Mutate(x =>
-                x.DrawText(s, header, brushBlack, new PointF(outputImage.Width / 2 - size.Width / 2, yPos)));
-
-            yPos += header.Size + padGameDay;
-
-            foreach ((string EkTeam, string OpTeam, bool IsHomeGame, string Time) g in gameDay.Value)
-            {
-                outputImage.Mutate(x =>
-                {
-                    // draw background
-                    x.DrawRoundedRectangleWithCenteredText(
-                        ekRect.Offset(offsetX + timeRect.Width + padBetween, yPos - (ekRect.Height - boldText.Size) / 2), Rgba32.ParseHex("#f05a5a"),
-                        g.EkTeam, boldText, brushWhite);
-
-                    x.DrawRoundedRectangleWithCenteredText(
-                        atRect.Offset(offsetX + timeRect.Width + ekRect.Width + 2 * padBetween, yPos - (atRect.Height - boldText.Size) / 2),
-                        Rgba32.ParseHex("#cbcbcb"), g.IsHomeGame ? "vs" : "@", boldText, brushBlack);
-
-                    x.DrawRoundedRectangleWithCenteredText(
-                        opRect.Offset(offsetX + timeRect.Width + ekRect.Width + 3 * padBetween + atRect.Width, yPos - (opRect.Height - text.Size) / 2),
-                        Rgba32.ParseHex("#f05a5a"), g.OpTeam, text, brushWhite);
-
-                    x.DrawRoundedRectangleWithCenteredText(
-                        timeRect.Offset(offsetX, yPos - (timeRect.Height - boldText.Size) / 2),
-                        Rgba32.ParseHex("#cbcbcb"), g.Time, boldText, brushBlack);
-                });
-                yPos += ekRect.Height + padGame;
-            }
-        }
-
-        MemoryStream ms = new();
-        await outputImage.SaveAsync(ms);
-        ms.Position = 0;
-        Stream = ms;
+        await Render("Spiele am Wochenende", gameDays);
     }
 
     [RelayCommand]
@@ -332,7 +311,7 @@ public partial class MainViewModel : ViewModelBase
     {
         if (Stream is not null)
         {
-            m_shareService.Share(Stream);
+            shareService.Share(Stream);
         }
     }
     
@@ -341,7 +320,7 @@ public partial class MainViewModel : ViewModelBase
     {
         if (Stream is not null)
         {
-            m_shareService.ShareB(Stream);
+            shareService.ShareB(Stream);
         }
     }
 }
