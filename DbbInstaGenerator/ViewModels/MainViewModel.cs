@@ -60,9 +60,9 @@ public partial class MainViewModel : ViewModelBase
 
     private MemoryStream? m_stream;
 
-    private Dictionary<DateTime, List<(string EkTeam, string OpTeam, bool IsHomeGame, string Score)>> gameDayResults =
+    private Dictionary<DateTime, List<(string EkTeam, string OpTeam, bool IsHomeGame, bool Fuck, string Score)>> gameDayResults =
         new();
-    private Dictionary<DateTime, List<(string EkTeam, string OpTeam, bool IsHomeGame, string Time)>> gameDays = new();
+    private Dictionary<DateTime, List<(string EkTeam, string OpTeam, bool IsHomeGame, bool Fuck, string Time)>> gameDays = new();
 
     private Brush brushWhite = Brushes.Solid(Color.WhiteSmoke);
     private Brush brushBlack = Brushes.Solid(Color.Black);
@@ -147,12 +147,13 @@ public partial class MainViewModel : ViewModelBase
             {
                 gameDayResults.TryAdd(gameTime, new());
                 gameDayResults[gameTime].Add((ekTeam, opTeam, homeName.Item2,
-                    match.Abgesagt == true ? "Abgesagt" : match.Verzicht == true ? "Verzicht" : match.Result));
+                    match.Abgesagt == true || match.Verzicht == true, match.Result));
             }
             else
             {
                 gameDays.TryAdd(gameTime, new());
-                gameDays[gameTime].Add((ekTeam, opTeam, homeName.Item2, match.KickoffTime + " Uhr"));
+                gameDays[gameTime].Add((ekTeam, opTeam, homeName.Item2,
+                    match.Abgesagt == true || match.Verzicht == true, match.KickoffTime + " Uhr"));
             }
         }
     }
@@ -184,7 +185,7 @@ public partial class MainViewModel : ViewModelBase
         return (team.Teamname, false);
     }
 
-    private async Task Render(string title, Dictionary<DateTime, List<(string EkTeam, string OpTeam, bool IsHome, string ScoreOrTime)>> data)
+    private async Task Render(string title, Dictionary<DateTime, List<(string EkTeam, string OpTeam, bool IsHome, bool Fuck, string ScoreOrTime)>> data)
     {
         // load our background
         using var backgroundImage = await LoadImageAsync(backgroundResourceName);
@@ -224,7 +225,7 @@ public partial class MainViewModel : ViewModelBase
                 x.DrawCenteredText(s, headerFont, brushWhite, new PointF(outputImage.Width / 2, yPos)));
             yPos += headerFont.Size + padAfterHeader;
 
-            foreach ((string EkTeam, string OpTeam, bool IsHomeGame, string ScoreOrTime) game in day.Value)
+            foreach ((string EkTeam, string OpTeam, bool IsHomeGame, bool Fuck, string ScoreOrTime) game in day.Value)
             {
                 float xPos = offsetX;
                 outputImage.Mutate(x =>
@@ -258,6 +259,11 @@ public partial class MainViewModel : ViewModelBase
                         timeRect.Offset(xPos, yPos - (timeRect.Height - boldFont.Size) / 2),
                         Rgba32.ParseHex("#cbcbcb"), game.ScoreOrTime, boldFont, brushBlack);
                     xPos += timeRect.Width;
+                    
+                    if (game.Fuck)
+                    {
+                        x.DrawLine(brushBlack, 10f, new PointF(offsetX + padRect, yPos + boldFont.Size / 2), new PointF(offsetX + ekRect.Width + atRect.Width + opRect.Width + timeRect.Width + 3 * padBetweenRects - padRect, yPos + boldFont.Size / 2));
+                    }
                 });
                 yPos += ekRect.Height + padAfterGame;
             }
