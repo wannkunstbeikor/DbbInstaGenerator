@@ -146,8 +146,15 @@ public partial class MainViewModel : ViewModelBase
             if (!string.IsNullOrEmpty(match.Result))
             {
                 gameDayResults.TryAdd(gameTime, new());
+
+                string result = match.Result;
+                if (!homeName.Item2)
+                {
+                    result = string.Join(":", result.Split(':').Reverse());
+                }
+                
                 gameDayResults[gameTime].Add((ekTeam, opTeam, homeName.Item2,
-                    match.Abgesagt == true || match.Verzicht == true, match.Result));
+                    match.Abgesagt == true || match.Verzicht == true, result));
             }
             else
             {
