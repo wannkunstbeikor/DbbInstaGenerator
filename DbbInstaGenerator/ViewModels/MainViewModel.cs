@@ -143,12 +143,16 @@ public partial class MainViewModel : ViewModelBase
             var ekTeam = homeName.Item2 ? homeName.Item1 : guestName.Item1;
             var opTeam = homeName.Item2 ? guestName.Item1 : homeName.Item1;
 
-            if (!string.IsNullOrEmpty(match.Result))
+            if (gameTime < DateTime.Now)
             {
                 gameDayResults.TryAdd(gameTime, new());
 
                 string result = match.Result;
-                if (!homeName.Item2)
+                if (string.IsNullOrEmpty(result))
+                {
+                    result = "-:-";
+                }
+                else if (!homeName.Item2)
                 {
                     result = string.Join(":", result.Split(':').Reverse());
                 }
